@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:chrome": "next dev --turbopack && start chrome http://localhost:3000",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
