@@ -1,15 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ImagePost, Comment } from '@/lib/types';
+import { ImagePost, Comment, CommentModalProps } from '@/lib/types';
 import { MockApi } from '@/lib/api/mockApi';
 import { cn } from '@/lib/utils';
-
-interface CommentModalProps {
-  post: ImagePost;
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 // 목업 댓글 데이터
 const mockComments: Comment[] = [

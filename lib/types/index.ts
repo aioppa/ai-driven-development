@@ -69,3 +69,9 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
+export interface CommentModalProps {
+  post: ImagePost;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
