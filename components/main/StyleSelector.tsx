@@ -8,11 +8,13 @@ import { cn } from '@/lib/utils';
 interface StyleSelectorProps {
   selectedStyle?: string;
   onStyleSelect: (styleId: string) => void;
+  hideTitle?: boolean;
 }
 
 export const StyleSelector: React.FC<StyleSelectorProps> = ({
   selectedStyle,
   onStyleSelect,
+  hideTitle = false,
 }) => {
   const [styles, setStyles] = useState<StyleOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,14 +47,16 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
   if (isLoading) {
     return (
       <div className="w-full">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-          스타일을 선택해주세요
-        </h3>
-        <div className="flex flex-wrap justify-center gap-3">
-          {Array.from({ length: 10 }).map((_, index) => (
+        {!hideTitle && (
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+            스타일을 선택해주세요
+          </h3>
+        )}
+        <div className="grid grid-cols-5 gap-3 max-w-4xl mx-auto">
+          {Array.from({ length: 25 }).map((_, index) => (
             <div
               key={index}
-              className="animate-pulse bg-gray-200 rounded-full h-10 w-20"
+              className="animate-pulse bg-gray-200 rounded-lg h-10"
             />
           ))}
         </div>
@@ -76,19 +80,21 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
 
   return (
     <div className="w-full">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-        스타일을 선택해주세요
-      </h3>
-      <div className="flex flex-wrap justify-center gap-3">
+      {!hideTitle && (
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+          스타일을 선택해주세요
+        </h3>
+      )}
+      <div className="grid grid-cols-5 gap-3 max-w-4xl mx-auto">
         {styles.map((style) => (
           <button
             key={style.id}
             onClick={() => onStyleSelect(style.id)}
             className={cn(
-              'relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#3A6BFF] focus:ring-offset-2',
+              'relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#3A6BFF] focus:ring-offset-2 text-center',
               selectedStyle === style.id
-                ? 'bg-[#3A6BFF] text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900',
+                ? 'bg-[#3A6BFF] text-white shadow-lg transform scale-105'
+                : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 border border-gray-200 hover:border-gray-300',
               style.isPopular && 'pr-8'
             )}
           >

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { StyleSelector } from '@/components/main/StyleSelector';
 import { MockApi } from '@/lib/api/mockApi';
 import { useRouter } from 'next/navigation';
 
@@ -60,9 +61,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex gap-3 items-start">
+    <div className="w-full max-w-6xl mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="flex gap-4 items-start">
           <div className="flex-1">
             <Input
               type="text"
@@ -71,9 +72,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               onChange={handlePromptChange}
               error={error}
               maxLength={200}
-              className="text-center text-lg h-12"
+              className="text-center text-xl h-16 border-2 border-[#3A6BFF] shadow-lg focus:shadow-xl transition-all duration-300"
             />
-            <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
+            <div className="flex justify-between items-center mt-3 text-sm text-gray-500">
               <span>최대 200자</span>
               <span>{prompt.length}/200</span>
             </div>
@@ -84,19 +85,28 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             size="lg"
             isLoading={isLoading}
             disabled={!prompt.trim() || !selectedStyle}
-            className="px-6 py-3 h-12 text-base font-semibold whitespace-nowrap"
+            className="px-8 py-4 h-16 text-lg font-semibold whitespace-nowrap shadow-lg hover:shadow-xl transition-all duration-300"
           >
             {isLoading ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             )}
           </Button>
+        </div>
+        
+        {/* 스타일 선택 영역 */}
+        <div className="mt-6">
+          <StyleSelector
+            selectedStyle={selectedStyle}
+            onStyleSelect={onStyleSelect || (() => {})}
+            hideTitle={true}
+          />
         </div>
       </form>
     </div>
