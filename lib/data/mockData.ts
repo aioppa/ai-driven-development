@@ -1,4 +1,4 @@
-import { ImagePost, StyleOption, Category, User } from '../types';
+import { ImagePost, StyleOption, Category, User, GeneratedImage, GenerationResponse, SaveResponse } from '../types';
 
 // 목업 사용자 데이터
 export const mockUsers: User[] = [
@@ -86,6 +86,97 @@ export const mockStyles: StyleOption[] = [
     name: '3D 렌더링',
     description: '현실적인 3D 렌더링 스타일',
     thumbnail: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&h=200&fit=crop',
+  },
+  {
+    id: '11',
+    name: '사진',
+    description: '실제 사진과 같은 현실적 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop',
+  },
+  {
+    id: '12',
+    name: '일러스트',
+    description: '깔끔한 일러스트레이션 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop',
+  },
+  {
+    id: '13',
+    name: '컨셉 아트',
+    description: '게임/영화 컨셉 아트 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop',
+  },
+  {
+    id: '14',
+    name: '로맨틱',
+    description: '로맨틱하고 감성적인 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop',
+  },
+  {
+    id: '15',
+    name: '고딕',
+    description: '어둡고 신비로운 고딕 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=200&h=200&fit=crop',
+  },
+  {
+    id: '16',
+    name: '네오 클래식',
+    description: '현대적 클래식 아트 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
+  },
+  {
+    id: '17',
+    name: '팝 아트',
+    description: '밝고 대담한 팝 아트 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=200&h=200&fit=crop',
+  },
+  {
+    id: '18',
+    name: '임프레션',
+    description: '인상주의 화풍 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1553356084-58fc29507101?w=200&h=200&fit=crop',
+  },
+  {
+    id: '19',
+    name: '사이버펑크',
+    description: '미래적 사이버펑크 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=200&h=200&fit=crop',
+    isPopular: true,
+  },
+  {
+    id: '20',
+    name: '스팀펑크',
+    description: '증기기관 시대 스팀펑크 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop',
+  },
+  {
+    id: '21',
+    name: '아르누보',
+    description: '유럽 아르누보 장식 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop',
+  },
+  {
+    id: '22',
+    name: '바우하우스',
+    description: '기능적 바우하우스 디자인 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop',
+  },
+  {
+    id: '23',
+    name: '아르데코',
+    description: '장식적 아르데코 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop',
+  },
+  {
+    id: '24',
+    name: '미니멀',
+    description: '극도로 단순한 미니멀 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
+  },
+  {
+    id: '25',
+    name: '맥시멀',
+    description: '풍부하고 복잡한 맥시멀 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=200&h=200&fit=crop',
   },
 ];
 
@@ -306,4 +397,75 @@ export const mockImagePosts: ImagePost[] = [
     updatedAt: new Date('2024-03-04'),
   },
 ];
+
+// 이미지 생성용 목업 데이터
+export const mockGeneratedImages: GeneratedImage[] = [
+  {
+    id: 'gen_1',
+    url: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=800&fit=crop',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=200&h=200&fit=crop',
+    prompt: 'A cyberpunk cityscape at night with neon lights',
+    styleId: '1',
+    createdAt: new Date(),
+  },
+  {
+    id: 'gen_2',
+    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=800&fit=crop',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop',
+    prompt: 'A cyberpunk cityscape at night with neon lights',
+    styleId: '1',
+    createdAt: new Date(),
+  },
+  {
+    id: 'gen_3',
+    url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=800&fit=crop',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop',
+    prompt: 'A cyberpunk cityscape at night with neon lights',
+    styleId: '1',
+    createdAt: new Date(),
+  },
+  {
+    id: 'gen_4',
+    url: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&h=800&fit=crop',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop',
+    prompt: 'A cyberpunk cityscape at night with neon lights',
+    styleId: '1',
+    createdAt: new Date(),
+  },
+];
+
+// 인기 태그 목업 데이터
+export const mockPopularTags = [
+  '도시', '네온', '사이버펑크', '밤', '숲', '마법', '판타지', '신비', '우주', '우주비행사',
+  'SF', '탐험', '추상', '기하학', '디지털', '색채', '고양이', '일상', '귀여움', '동물',
+  '건축', '미래', '지속가능', '기술', '바다', '일몰', '자연', '평화', '로봇', '우정',
+  '꽃', '봄', '색상', '산', '눈', '일출', '예술', '창작', 'AI', '패턴', '물결'
+];
+
+// 이미지 생성 시뮬레이션 함수
+export const simulateImageGeneration = async (prompt: string, styleId: string): Promise<GenerationResponse> => {
+  // 실제 API 호출을 시뮬레이션하기 위한 지연
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  
+  return {
+    success: true,
+    images: mockGeneratedImages,
+    generationTime: 3.2,
+    remainingCredits: 17,
+    message: '이미지가 성공적으로 생성되었습니다.'
+  };
+};
+
+// 이미지 저장 시뮬레이션 함수
+export const simulateImageSave = async (imageId: string, metadata: any, isPublic: boolean): Promise<SaveResponse> => {
+  // 실제 API 호출을 시뮬레이션하기 위한 지연
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  return {
+    success: true,
+    galleryId: isPublic ? undefined : `gallery_${Date.now()}`,
+    feedId: isPublic ? `feed_${Date.now()}` : undefined,
+    message: isPublic ? '이미지가 커뮤니티에 공유되었습니다.' : '이미지가 갤러리에 저장되었습니다.'
+  };
+};
 

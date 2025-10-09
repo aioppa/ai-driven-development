@@ -1,22 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PromptInput } from '@/components/main/PromptInput';
 import { FeedGrid } from '@/components/feed/FeedGrid';
-import Link from 'next/link';
+import { Header } from '@/components/ui/Header';
+import { ImagePost } from '@/lib/types';
+import { MockApi } from '@/lib/api/mockApi';
 
 export default function Home() {
-  const [selectedStyle, setSelectedStyle] = useState<string>('');
-  const [, setClonedPrompt] = useState<string>('');
+  const [posts, setPosts] = useState<ImagePost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
 
-  const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId);
+  // 피드 데이터 로드
+  const loadPosts = async (sortType: 'latest' | 'popular' = sortBy, append: boolean = false) => {
+    try {
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+        setCurrentPage(1);
+      }
+      
+      const pageToLoad = append ? currentPage + 1 : 1;
+      const response = await MockApi.getFeed({ sortBy: sortType }, pageToLoad, 12);
+      
+      if (response.success) {
+        if (append) {
+          setPosts(prev => [...prev, ...response.data.data]);
+          setCurrentPage(prev => prev + 1);
+        } else {
+          setPosts(response.data.data);
+          setCurrentPage(1);
+        }
+        setHasMore(response.data.hasMore);
+      }
+    } catch (error) {
+      console.error('피드 로드 실패:', error);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
   };
 
-  const handlePromptClone = (prompt: string) => {
-    setClonedPrompt(prompt);
+  // 초기 데이터 로드
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const handlePromptClone = (postId: string) => {
     // 프롬프트가 복제되면 상단으로 스크롤
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSortChange = (newSort: 'latest' | 'popular') => {
+    setSortBy(newSort);
+    loadPosts(newSort, false);
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      loadPosts(sortBy, true);
+    }
   };
 
   return (
@@ -37,26 +85,7 @@ export default function Home() {
       <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-cyan-500/20 rounded-full blur-2xl animate-pulse delay-2000"></div>
       <div className="absolute bottom-20 right-20 w-28 h-28 bg-pink-500/20 rounded-full blur-xl animate-pulse delay-500"></div>
       {/* 헤더 */}
-      <header className="bg-white/10 backdrop-blur-md shadow-lg border-b border-white/20 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-[#3A6BFF] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">A</span>
-              </div>
-              <h1 className="text-2xl font-bold text-white">AIPixels</h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/gallery" className="text-white/80 hover:text-white transition-colors">
-                갤러리
-              </Link>
-            <Link href="/feed" className="text-white/80 hover:text-white transition-colors">
-              커뮤니티
-            </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header className="relative z-10" />
 
       {/* 메인 콘텐츠 */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
@@ -90,18 +119,48 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 프롬프트 입력 섹션 */}
+          {/* 이미지 창작 버튼 섹션 */}
           <div className="mb-16">
-            <PromptInput
-              selectedStyle={selectedStyle}
-              onStyleSelect={handleStyleSelect}
-            />
+            <PromptInput />
           </div>
         </section>
 
         {/* 커뮤니티 피드 섹션 */}
         <section>
-          <FeedGrid onPromptClone={handlePromptClone} />
+          {/* 정렬 버튼 */}
+          <div className="flex justify-end mb-4">
+            <div className="flex items-center space-x-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-1">
+              <button
+                onClick={() => handleSortChange('latest')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                  sortBy === 'latest'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                최신순
+              </button>
+              <button
+                onClick={() => handleSortChange('popular')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                  sortBy === 'popular'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                인기순
+              </button>
+            </div>
+          </div>
+          
+          <FeedGrid 
+            posts={posts}
+            onPromptClone={handlePromptClone}
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
+            isLoading={isLoading}
+            isLoadingMore={isLoadingMore}
+          />
         </section>
       </main>
 
@@ -109,7 +168,7 @@ export default function Home() {
       <footer className="bg-white/10 backdrop-blur-md border-t border-white/20 mt-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-white/70">
-            <p>&copy; 2024 AIPixels. 모든 권리 보유.</p>
+            <p>&copy; 2025 AIPixels. 의 모든 권리와 소유는 (주)한유 기업에게 있습니다.</p>
           </div>
         </div>
       </footer>

@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { ImagePost, Comment } from '@/lib/types';
 import { MockApi } from '@/lib/api/mockApi';
+import { Header } from '@/components/ui/Header';
 import { CommentModal } from '@/components/feed/CommentModal';
+import { ShareModal } from '@/components/ui/ShareModal';
 import { cn } from '@/lib/utils';
 
 export default function FeedDetailPage() {
@@ -18,6 +19,7 @@ export default function FeedDetailPage() {
   const [likes, setLikes] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -109,30 +111,8 @@ export default function FeedDetailPage() {
     }
   };
 
-  const handleShare = async () => {
-    if (!post) return;
-    
-    const shareData = {
-      title: post.title,
-      text: post.description || post.title,
-      url: window.location.href,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        console.log('공유가 취소되었습니다.');
-      }
-    } else {
-      // Web Share API를 지원하지 않는 경우 클립보드에 복사
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        alert('링크가 클립보드에 복사되었습니다!');
-      } catch (error) {
-        console.error('클립보드 복사 실패:', error);
-      }
-    }
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
@@ -177,21 +157,21 @@ export default function FeedDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3A6BFF]"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">오류</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <h2 className="text-2xl font-bold text-white mb-4">오류</h2>
+          <p className="text-white/70 mb-6">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="bg-[#3A6BFF] text-white px-6 py-3 rounded-lg hover:bg-[#2F5DCC] transition-colors"
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
           >
             메인으로 돌아가기
           </button>
@@ -201,54 +181,25 @@ export default function FeedDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.back()}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-[#3A6BFF] rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">A</span>
-                </div>
-                <h1 className="text-2xl font-bold text-gray-900">AIPixels</h1>
-              </div>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/gallery" className="text-gray-600 hover:text-[#3A6BFF] transition-colors">
-                갤러리
-              </Link>
-              <Link href="/feed" className="text-gray-600 hover:text-[#3A6BFF] transition-colors">
-                커뮤니티
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header title="AIPixels" subtitle="커뮤니티" />
 
       {/* 메인 콘텐츠 */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 좌측: 이미지 섹션 */}
           <div className="space-y-4">
-            <div className="relative">
+            <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
               <img
                 src={post.imageUrl}
                 alt={post.title}
-                className="w-full h-auto rounded-lg shadow-lg"
+                className="w-full h-auto"
               />
               <div className="absolute top-4 right-4 flex space-x-2">
                 <button
                   onClick={() => window.open(post.imageUrl, '_blank')}
-                  className="bg-black bg-opacity-50 text-white p-2 rounded-lg hover:bg-opacity-70 transition-colors"
+                  className="bg-black/50 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-black/70 transition-colors"
                   title="이미지 확대"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,7 +208,7 @@ export default function FeedDetailPage() {
                 </button>
                 <button
                   onClick={() => handleShare()}
-                  className="bg-black bg-opacity-50 text-white p-2 rounded-lg hover:bg-opacity-70 transition-colors"
+                  className="bg-black/50 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-black/70 transition-colors"
                   title="공유하기"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,15 +222,15 @@ export default function FeedDetailPage() {
           {/* 우측: 상세 정보 및 댓글 섹션 */}
           <div className="space-y-6">
             {/* 작성자 정보 */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
               <img
                 src={post.author.avatar}
                 alt={post.author.username}
                 className="w-12 h-12 rounded-full"
               />
               <div>
-                <h3 className="font-semibold text-gray-900 text-lg">{post.author.username}</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="font-semibold text-white text-lg">{post.author.username}</h3>
+                <p className="text-sm text-white/70">
                   {new Date(post.createdAt).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: '2-digit',
@@ -292,23 +243,23 @@ export default function FeedDetailPage() {
             </div>
 
             {/* 프롬프트 섹션 */}
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-3">프롬프트</h4>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-gray-700 leading-relaxed">{post.prompt}</p>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
+              <h4 className="text-lg font-semibold text-white mb-3">프롬프트</h4>
+              <div className="bg-white/10 rounded-lg p-4">
+                <p className="text-white/80 leading-relaxed">{post.prompt}</p>
               </div>
             </div>
 
             {/* 액션 버튼들 */}
-            <div className="flex items-center space-x-6 py-4 border-t border-gray-200">
+            <div className="flex items-center space-x-6 py-4 border-t border-white/10">
               <button
                 onClick={handleLike}
                 disabled={isLiking}
                 className={cn(
                   'flex items-center space-x-2 text-lg transition-colors',
                   isLiked
-                    ? 'text-red-500 hover:text-red-600'
-                    : 'text-gray-500 hover:text-red-500'
+                    ? 'text-red-400 hover:text-red-300'
+                    : 'text-white/70 hover:text-red-400'
                 )}
               >
                 <svg
@@ -329,7 +280,7 @@ export default function FeedDetailPage() {
 
               <button 
                 onClick={() => setIsCommentModalOpen(true)}
-                className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 text-lg transition-colors"
+                className="flex items-center space-x-2 text-white/70 hover:text-white text-lg transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -344,7 +295,7 @@ export default function FeedDetailPage() {
 
               <button
                 onClick={() => handleShare()}
-                className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 text-lg transition-colors"
+                className="flex items-center space-x-2 text-white/70 hover:text-white text-lg transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
@@ -354,14 +305,14 @@ export default function FeedDetailPage() {
             </div>
 
             {/* 댓글 작성 */}
-            <div className="space-y-4">
+            <div className="space-y-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
               <form onSubmit={handleSubmitComment} className="flex space-x-3">
                 <input
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="댓글을 입력하세요..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3A6BFF] focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
+                  className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50"
                   maxLength={200}
                 />
                 <button
@@ -370,8 +321,8 @@ export default function FeedDetailPage() {
                   className={cn(
                     'px-6 py-3 rounded-lg font-medium transition-colors text-base',
                     newComment.trim() && !isSubmittingComment
-                      ? 'bg-[#3A6BFF] text-white hover:bg-[#2F5DCC]'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      ? 'bg-blue-500 text-white hover:bg-blue-600'
+                      : 'bg-white/10 text-white/50 cursor-not-allowed'
                   )}
                 >
                   {isSubmittingComment ? '작성 중...' : '작성'}
@@ -381,7 +332,7 @@ export default function FeedDetailPage() {
               {/* 댓글 목록 */}
               <div className="space-y-4">
                 {comments.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
+                  <div className="text-center text-white/50 py-8">
                     <p className="text-lg">아직 댓글이 없습니다.</p>
                     <p className="text-sm mt-2">첫 번째 댓글을 작성해보세요!</p>
                   </div>
@@ -395,14 +346,14 @@ export default function FeedDetailPage() {
                       />
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium text-sm text-gray-900">
+                          <span className="font-medium text-sm text-white">
                             {comment.author.username}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-white/50">
                             {formatDate(comment.createdAt)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700">{comment.content}</p>
+                        <p className="text-sm text-white/80">{comment.content}</p>
                       </div>
                     </div>
                   ))
@@ -412,6 +363,18 @@ export default function FeedDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* 공유 모달 */}
+      {showShareModal && post && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={post.title}
+          description={post.description || post.prompt}
+          imageUrl={post.imageUrl}
+          url={window.location.href}
+        />
+      )}
 
       {/* 댓글 모달 */}
       {post && (
