@@ -24,9 +24,18 @@ export function Header({
         <div className="flex items-center justify-between h-16">
           {/* 로고 및 제목 */}
           <div className="flex items-center space-x-4">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-[#3A6BFF] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">A</span>
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                <div className="w-8 h-8 relative">
+                  {/* 간단한 AIPixels 아이콘 */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                      <div className="w-4 h-4 bg-white rounded-sm opacity-80"></div>
+                    </div>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full"></div>
+                  <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-green-400 rounded-full"></div>
+                </div>
               </div>
               <h1 className="text-2xl font-bold text-white">{title}</h1>
               {subtitle && (
