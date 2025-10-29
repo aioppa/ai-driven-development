@@ -3,8 +3,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { cn, debounce } from '@/lib/utils';
-import { TranslationHistoryComponent } from './TranslationHistory';
-import { TranslationHistory } from '@/lib/types';
 
 interface PromptInputProps {
   prompt: string;
@@ -28,7 +26,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
 
   // 번역 함수
   const translateText = useCallback(async (text: string) => {
@@ -138,59 +135,67 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   const isDisabled = isGenerating || !prompt.trim() || prompt.length > 500;
 
-  // 번역 이력 선택 핸들러
-  const handleSelectHistory = (history: TranslationHistory) => {
-    onPromptChange(history.original);
-    setShowHistory(false);
-  };
 
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="relative">
-          {/* 프롬프트 입력 필드 */}
-          <textarea
-            value={prompt}
-            onChange={(e) => onPromptChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder="원하는 이미지를 자세히 설명해주세요... (예: 고양이가 우주에서 춤추는 모습)"
-            maxLength={500}
-            rows={5}
-            className={cn(
-              'w-full px-5 py-3 bg-white/10 backdrop-blur-sm border-2 rounded-xl text-white placeholder-white/50 resize-none transition-all duration-300 focus:outline-none text-base',
-              isFocused
-                ? 'border-[#3A6BFF] shadow-lg shadow-[#3A6BFF]/20'
-                : 'border-white/20 hover:border-white/30',
-              error && 'border-red-500'
-            )}
-            disabled={isGenerating}
-          />
-          
-          {/* 글자 수 표시 */}
-          <div className={cn(
-            "absolute bottom-3 right-3 text-xs transition-colors",
-            prompt.length > 450 ? "text-red-400" : 
-            prompt.length > 400 ? "text-yellow-400" : 
-            "text-white/60"
-          )}>
-            {prompt.length}/500
+        <div className="flex items-center space-x-3">
+          {/* 프롬프트 입력 필드 - 한 줄 */}
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => onPromptChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder="원하는 이미지를 자세히 설명해주세요..."
+              maxLength={500}
+              className={cn(
+                'w-full px-5 py-3 bg-white/10 backdrop-blur-sm border-2 rounded-xl text-white placeholder-white/50 transition-all duration-300 focus:outline-none text-base',
+                isFocused
+                  ? 'border-[#3A6BFF] shadow-lg shadow-[#3A6BFF]/20'
+                  : 'border-white/20 hover:border-white/30',
+                error && 'border-red-500'
+              )}
+              disabled={isGenerating}
+            />
+            
+            {/* 글자 수 표시 */}
+            <div className={cn(
+              "absolute right-3 top-1/2 transform -translate-y-1/2 text-xs transition-colors",
+              prompt.length > 450 ? "text-red-400" : 
+              prompt.length > 400 ? "text-yellow-400" : 
+              "text-white/60"
+            )}>
+              {prompt.length}/500
+            </div>
+
           </div>
 
-          {/* 번역 이력 버튼 */}
-          <div className="absolute top-3 right-3">
-            <button
-              type="button"
-              onClick={() => setShowHistory(true)}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-              title="번역 이력 보기"
-            >
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-          </div>
+          {/* 생성 버튼 */}
+          <Button
+            type="submit"
+            disabled={isDisabled}
+            className={cn(
+              "px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed",
+              isGenerating && "animate-pulse"
+            )}
+          >
+            {isGenerating ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>생성 중...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>생성</span>
+              </div>
+            )}
+          </Button>
         </div>
 
         {/* 번역 결과 표시 */}
@@ -273,46 +278,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           </div>
         )}
 
-        {/* 생성 버튼 */}
-        <div className="flex justify-center">
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isDisabled}
-            className={cn(
-              'px-8 py-4 text-lg font-semibold transition-all duration-300',
-              isDisabled
-                ? 'bg-gray-500/50 text-gray-300 cursor-not-allowed'
-                : 'bg-[#3A6BFF] hover:bg-[#2F5DCC] text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-            )}
-          >
-            {isGenerating ? (
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <span>생성 중...</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>AI 이미지 생성</span>
-              </div>
-            )}
-          </Button>
-        </div>
 
       </form>
 
-      {/* 번역 이력 모달 */}
-      <TranslationHistoryComponent
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
-        onSelectHistory={handleSelectHistory}
-      />
     </div>
   );
 };

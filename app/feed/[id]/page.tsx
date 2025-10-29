@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ImagePost, Comment } from '@/lib/types';
 import { MockApi } from '@/lib/api/mockApi';
-import { Header } from '@/components/ui/Header';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { CommentModal } from '@/components/feed/CommentModal';
 import { ShareModal } from '@/components/ui/ShareModal';
 import { cn } from '@/lib/utils';
@@ -181,12 +181,21 @@ export default function FeedDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* 헤더 */}
-      <Header title="AIPixels" subtitle="커뮤니티" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+      {/* 사이드바 */}
+      <Sidebar />
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col">
+        {/* 상단 헤더 */}
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">상세페이지</h1>
+          </div>
+        </div>
+
+        {/* 메인 콘텐츠 */}
+        <main className="flex-1 p-6 overflow-y-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 좌측: 이미지 섹션 */}
           <div className="space-y-4">
@@ -220,17 +229,17 @@ export default function FeedDetailPage() {
           </div>
 
           {/* 우측: 상세 정보 및 댓글 섹션 */}
-          <div className="space-y-6">
+          <div className="flex flex-col space-y-3">
             {/* 작성자 정보 */}
-            <div className="flex items-center space-x-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+            <div className="flex items-center space-x-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3">
               <img
                 src={post.author.avatar}
                 alt={post.author.username}
-                className="w-12 h-12 rounded-full"
+                className="w-10 h-10 rounded-full"
               />
               <div>
-                <h3 className="font-semibold text-white text-lg">{post.author.username}</h3>
-                <p className="text-sm text-white/70">
+                <h3 className="font-semibold text-white text-base">{post.author.username}</h3>
+                <p className="text-xs text-white/70">
                   {new Date(post.createdAt).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: '2-digit',
@@ -243,27 +252,44 @@ export default function FeedDetailPage() {
             </div>
 
             {/* 프롬프트 섹션 */}
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-              <h4 className="text-lg font-semibold text-white mb-3">프롬프트</h4>
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-white/80 leading-relaxed">{post.prompt}</p>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+              <h4 className="text-base font-semibold text-white mb-2">프롬프트</h4>
+              <div className="bg-white/10 rounded-lg p-3">
+                <p className="text-white/80 text-sm leading-relaxed">{post.prompt}</p>
               </div>
             </div>
 
+            {/* 태그 섹션 */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+                <h4 className="text-base font-semibold text-white mb-2">태그</h4>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-2.5 py-1 bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded-full text-xs font-medium hover:bg-blue-500/30 transition-colors cursor-pointer"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 액션 버튼들 */}
-            <div className="flex items-center space-x-6 py-4 border-t border-white/10">
+            <div className="flex items-center space-x-4 py-2 border-t border-white/10">
               <button
                 onClick={handleLike}
                 disabled={isLiking}
                 className={cn(
-                  'flex items-center space-x-2 text-lg transition-colors',
+                  'flex items-center space-x-1.5 text-sm transition-colors',
                   isLiked
                     ? 'text-red-400 hover:text-red-300'
                     : 'text-white/70 hover:text-red-400'
                 )}
               >
                 <svg
-                  className={cn('w-6 h-6', isLiked && 'fill-current')}
+                  className={cn('w-5 h-5', isLiked && 'fill-current')}
                   fill={isLiked ? 'currentColor' : 'none'}
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -280,9 +306,9 @@ export default function FeedDetailPage() {
 
               <button 
                 onClick={() => setIsCommentModalOpen(true)}
-                className="flex items-center space-x-2 text-white/70 hover:text-white text-lg transition-colors"
+                className="flex items-center space-x-1.5 text-white/70 hover:text-white text-sm transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -295,31 +321,31 @@ export default function FeedDetailPage() {
 
               <button
                 onClick={() => handleShare()}
-                className="flex items-center space-x-2 text-white/70 hover:text-white text-lg transition-colors"
+                className="flex items-center space-x-1.5 text-white/70 hover:text-white text-sm transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
-                <span className="font-medium">공유</span>
+                <span className="font-medium text-xs">공유</span>
               </button>
             </div>
 
-            {/* 댓글 작성 */}
-            <div className="space-y-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-              <form onSubmit={handleSubmitComment} className="flex space-x-3">
+            {/* 댓글 작성 및 목록 */}
+            <div className="flex-1 flex flex-col bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 min-h-0">
+              <form onSubmit={handleSubmitComment} className="flex space-x-2 mb-4">
                 <input
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="댓글을 입력하세요..."
-                  className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50"
+                  className="flex-1 px-3 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-white/50 text-sm"
                   maxLength={200}
                 />
                 <button
                   type="submit"
                   disabled={!newComment.trim() || isSubmittingComment}
                   className={cn(
-                    'px-6 py-3 rounded-lg font-medium transition-colors text-base',
+                    'px-4 py-2 rounded-lg font-medium transition-colors text-sm',
                     newComment.trim() && !isSubmittingComment
                       ? 'bg-blue-500 text-white hover:bg-blue-600'
                       : 'bg-white/10 text-white/50 cursor-not-allowed'
@@ -330,30 +356,30 @@ export default function FeedDetailPage() {
               </form>
 
               {/* 댓글 목록 */}
-              <div className="space-y-4">
+              <div className="flex-1 space-y-3 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 600px)' }}>
                 {comments.length === 0 ? (
-                  <div className="text-center text-white/50 py-8">
-                    <p className="text-lg">아직 댓글이 없습니다.</p>
-                    <p className="text-sm mt-2">첫 번째 댓글을 작성해보세요!</p>
+                  <div className="text-center text-white/50 py-6">
+                    <p className="text-base">아직 댓글이 없습니다.</p>
+                    <p className="text-xs mt-1">첫 번째 댓글을 작성해보세요!</p>
                   </div>
                 ) : (
                   comments.map((comment) => (
-                    <div key={comment.id} className="flex space-x-3">
+                    <div key={comment.id} className="flex space-x-2">
                       <img
                         src={comment.author.avatar}
                         alt={comment.author.username}
-                        className="w-8 h-8 rounded-full flex-shrink-0"
+                        className="w-7 h-7 rounded-full flex-shrink-0"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium text-sm text-white">
+                        <div className="flex items-center space-x-2 mb-0.5">
+                          <span className="font-medium text-xs text-white">
                             {comment.author.username}
                           </span>
                           <span className="text-xs text-white/50">
                             {formatDate(comment.createdAt)}
                           </span>
                         </div>
-                        <p className="text-sm text-white/80">{comment.content}</p>
+                        <p className="text-xs text-white/80 leading-relaxed">{comment.content}</p>
                       </div>
                     </div>
                   ))
@@ -362,7 +388,8 @@ export default function FeedDetailPage() {
             </div>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
 
       {/* 공유 모달 */}
       {showShareModal && post && (

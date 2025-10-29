@@ -1,15 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { ImagePost, FeedFilters } from '@/lib/types';
 import { MockApi } from '@/lib/api/mockApi';
-import { Header } from '@/components/ui/Header';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { FeedFilters as FeedFiltersComponent } from '@/components/feed/FeedFilters';
 import { FeedGrid } from '@/components/feed/FeedGrid';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Toast } from '@/components/ui/Toast';
 
 export default function FeedPage() {
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+  
+  // 모든 hooks를 먼저 선언
   const [posts, setPosts] = useState<ImagePost[]>([]);
   const [filters, setFilters] = useState<FeedFilters>({
     sortBy: 'latest',
@@ -30,7 +36,7 @@ export default function FeedPage() {
     setPagination(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const response = await MockApi.getFeed(filters, page, 12);
+      const response = await MockApi.getFeed(filters, page, 15);
       
       if (response.success) {
         setPosts(prev => append ? [...prev, ...response.data.data] : response.data.data);
@@ -50,10 +56,19 @@ export default function FeedPage() {
     }
   };
 
+  // 로그인 확인
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   // 초기 데이터 로드
   useEffect(() => {
-    loadFeedData(1, false);
-  }, [filters]);
+    if (isLoaded && isSignedIn) {
+      loadFeedData(1, false);
+    }
+  }, [filters, isLoaded, isSignedIn]);
 
   // 필터 변경
   const handleFiltersChange = (newFilters: FeedFilters) => {
@@ -107,20 +122,31 @@ export default function FeedPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* 헤더 */}
-      <Header title="AIPixels" subtitle="커뮤니티" />
+  // 로딩 중이거나 로그인하지 않은 경우
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 페이지 제목 */}
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold text-white mb-4">커뮤니티 피드</h2>
-          <p className="text-white/70 text-lg">
-            다른 사용자들이 만든 멋진 AI 이미지들을 탐색하고 영감을 받아보세요
-          </p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+      {/* 사이드바 */}
+      <Sidebar />
+
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col">
+        {/* 상단 헤더 */}
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">커뮤니티</h1>
+          </div>
         </div>
+
+        {/* 메인 콘텐츠 */}
+        <main className="flex-1 p-6">
 
         {/* 필터 및 검색 */}
         <FeedFiltersComponent
@@ -151,7 +177,8 @@ export default function FeedPage() {
             <LoadingSpinner size="lg" />
           </div>
         )}
-      </main>
+        </main>
+      </div>
 
       {/* 토스트 알림 */}
       {toast && (

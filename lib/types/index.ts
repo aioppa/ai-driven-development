@@ -93,6 +93,14 @@ export interface GenerationRequest {
   styleId: string;
   userId?: string;
   sessionId?: string;
+  imageSize?: {
+    id: string;
+    name: string;
+    ratio: string;
+    width: number;
+    height: number;
+    description: string;
+  };
 }
 
 export interface GenerationResponse {

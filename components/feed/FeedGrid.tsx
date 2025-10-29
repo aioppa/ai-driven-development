@@ -40,7 +40,7 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
 
   return (
     <div className="w-full">
-      {/* 피드 그리드 */}
+      {/* 피드 그리드 - 12개 그리드 레이아웃 */}
       {isLoading && posts.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 12 }).map((_, index) => (

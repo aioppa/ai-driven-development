@@ -10,10 +10,14 @@ import {
   ReplicateError
 } from '@/lib/types/replicate';
 
-// Replicate 클라이언트 초기화
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+// Replicate 클라이언트 초기화 (토큰이 없는 경우 null로 유지해 개발 모드 지원)
+const replicateApiToken = process.env.REPLICATE_API_TOKEN;
+const replicate = replicateApiToken
+  ? new Replicate({ auth: replicateApiToken })
+  : null;
+
+// 기본 모델을 환경변수로 설정 가능하게 함 (없을 경우 안전한 기본값 사용)
+const DEFAULT_MODEL = process.env.REPLICATE_MODEL || 'black-forest-labs/flux-dev';
 
 // 스타일 매핑 설정
 const STYLE_MAPPING: StyleMapping = {
@@ -47,6 +51,12 @@ const STYLE_MAPPING: StyleMapping = {
     numInferenceSteps: 4,
     outputQuality: 90
   },
+  '26': { // 지브리 스타일
+    promptModifier: 'Studio Ghibli style, Hayao Miyazaki style, anime, hand-drawn animation, whimsical, dreamy, soft colors, detailed background',
+    aspectRatio: '16:9',
+    numInferenceSteps: 4,
+    outputQuality: 95
+  },
   // 기본값
   'default': {
     promptModifier: 'high quality, detailed',
@@ -62,7 +72,7 @@ export class ReplicateAPI {
    */
   static async createPrediction(request: AIPixelsGenerationRequest): Promise<ReplicatePrediction> {
     try {
-      if (!process.env.REPLICATE_API_TOKEN) {
+      if (!process.env.REPLICATE_API_TOKEN || !replicate) {
         throw new Error('REPLICATE_API_TOKEN is not set');
       }
 
@@ -75,20 +85,27 @@ export class ReplicateAPI {
       // Replicate 입력 파라미터 구성
       const input: ReplicateInput = {
         prompt: enhancedPrompt,
-        aspect_ratio: (request.aspectRatio as any) || styleConfig.aspectRatio as any,
-        num_outputs: 1,
-        output_format: 'png',
-        output_quality: styleConfig.outputQuality,
-        num_inference_steps: styleConfig.numInferenceSteps,
-        disable_safety_checker: false,
-        go_fast: true
-      };
+        aspect_ratio: (request.aspectRatio as any) || (styleConfig.aspectRatio as any),
+        // Keep the payload minimal for broad model compatibility
+        num_outputs: 1
+      } as any;
 
-      // 예측 생성
-      const prediction = await replicate.predictions.create({
-        model: 'google/nano-banana',
-        input
-      });
+      // 예측 생성 (표준 입력)
+      let prediction: any;
+      try {
+        prediction = await replicate.predictions.create({
+          model: DEFAULT_MODEL,
+          input
+        });
+      } catch (primaryError) {
+        // 모델 입력 스키마가 다른 경우를 대비해 최소 입력으로 재시도
+        console.warn('Primary prediction attempt failed, retrying with minimal input...', primaryError);
+        const minimalInput: any = { prompt: enhancedPrompt };
+        prediction = await replicate.predictions.create({
+          model: DEFAULT_MODEL,
+          input: minimalInput
+        });
+      }
 
       return prediction as ReplicatePrediction;
     } catch (error) {
@@ -102,7 +119,7 @@ export class ReplicateAPI {
    */
   static async getPrediction(predictionId: string): Promise<ReplicatePrediction> {
     try {
-      if (!process.env.REPLICATE_API_TOKEN) {
+      if (!process.env.REPLICATE_API_TOKEN || !replicate) {
         throw new Error('REPLICATE_API_TOKEN is not set');
       }
 
@@ -119,7 +136,7 @@ export class ReplicateAPI {
    */
   static async cancelPrediction(predictionId: string): Promise<void> {
     try {
-      if (!process.env.REPLICATE_API_TOKEN) {
+      if (!process.env.REPLICATE_API_TOKEN || !replicate) {
         throw new Error('REPLICATE_API_TOKEN is not set');
       }
 
@@ -137,6 +154,17 @@ export class ReplicateAPI {
     const startTime = Date.now();
     
     try {
+      // 토큰이 없는 경우: 명확한 실패 반환 (목업 비활성화)
+      if (!process.env.REPLICATE_API_TOKEN || !replicate) {
+        return {
+          success: false,
+          images: [],
+          generationTime: (Date.now() - startTime) / 1000,
+          remainingCredits: 0,
+          message: 'REPLICATE_API_TOKEN is not set. Please configure your token to enable real image generation.'
+        };
+      }
+
       // 1. 예측 생성
       const prediction = await this.createPrediction(request);
       

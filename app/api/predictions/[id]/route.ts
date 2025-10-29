@@ -3,10 +3,10 @@ import { ReplicateAPI } from '@/lib/api/replicate';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const predictionId = params.id;
+    const { id: predictionId } = await context.params;
 
     if (!predictionId) {
       return NextResponse.json(
@@ -69,10 +69,10 @@ export async function GET(
 // 예측 취소 API
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const predictionId = params.id;
+    const { id: predictionId } = await context.params;
 
     if (!predictionId) {
       return NextResponse.json(

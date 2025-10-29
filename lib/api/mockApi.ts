@@ -1,8 +1,8 @@
 import { ImagePost, StyleOption, Category, FeedFilters, PaginatedResponse, ApiResponse, Comment, GenerationRequest, GenerationResponse, SaveRequest, SaveResponse, ImageMetadata, GalleryImage, GalleryFilters, GalleryUpdateRequest, GalleryVisibilityRequest } from '../types';
-import { mockImagePosts, mockStyles, mockCategories, mockUsers, mockPopularTags, simulateImageSave } from '../data/mockData';
+import { mockStyles, mockCategories, mockPopularTags, mockUsers, mockImagePosts } from '../data/mockData';
+import * as LocalGallery from '@/lib/services/localGallery';
 
-// 갤러리 이미지 데이터를 메모리에서 관리
-let galleryImages: GalleryImage[] = [];
+// 목업 데이터는 스타일/카테고리/태그에 한해 사용합니다.
 
 // 목업 API 함수들
 export class MockApi {
@@ -35,71 +35,49 @@ export class MockApi {
     page: number = 1,
     limit: number = 12
   ): Promise<ApiResponse<PaginatedResponse<ImagePost>>> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 더 많은 데이터를 생성하기 위해 기존 데이터를 복제하고 변형
-    let allPosts = [...mockImagePosts];
-    
-    // 기존 데이터를 복제하여 더 많은 데이터 생성 (최대 50개)
-    for (let i = 0; i < 3; i++) {
-      const duplicatedPosts = mockImagePosts.map((post, index) => ({
-        ...post,
-        id: `${post.id}_copy_${i}_${index}`,
-        title: `${post.title} (${i + 2})`,
-        createdAt: new Date(post.createdAt.getTime() - (i + 1) * 24 * 60 * 60 * 1000), // 하루씩 이전 날짜
-        likes: Math.floor(Math.random() * 100) + 10, // 랜덤 좋아요 수
-        comments: Math.floor(Math.random() * 20), // 랜덤 댓글 수
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    const res = await fetch(`/api/feed?${params.toString()}`, { cache: 'no-store' });
+    let payload: PaginatedResponse<any> = { data: [], total: 0, page, limit, hasMore: false } as any;
+    if (res.ok) {
+      const json = await res.json();
+      payload = json.data as PaginatedResponse<any>;
+    }
+    let data = (payload.data || []).map((p: any) => ({
+      ...p,
+      createdAt: new Date(p.createdAt),
+      updatedAt: new Date(p.updatedAt),
+    }));
+
+    if (!res.ok || data.length === 0) {
+      const local = LocalGallery.list('public', page, limit);
+      data = local.data.map((g) => ({
+        id: g.id,
+        title: g.title,
+        description: g.description,
+        imageUrl: g.imageUrl,
+        thumbnailUrl: g.thumbnailUrl,
+        prompt: '',
+        author: mockUsers[0],
+        tags: g.tags,
+        category: g.category,
+        likes: g.stats.likes,
+        comments: g.stats.comments,
+        isLiked: false,
+        isPublic: true,
+        createdAt: g.createdAt,
+        updatedAt: g.updatedAt,
       }));
-      allPosts = [...allPosts, ...duplicatedPosts];
+      payload = { data, total: local.total, page, limit, hasMore: local.hasMore } as any;
     }
-    
-    let filteredPosts = [...allPosts];
-    
-    // 정렬
-    if (filters.sortBy === 'popular') {
-      filteredPosts.sort((a, b) => b.likes - a.likes);
-    } else {
-      filteredPosts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }
-    
-    // 카테고리 필터
-    if (filters.category) {
-      filteredPosts = filteredPosts.filter(post => post.category === filters.category);
-    }
-    
-    // 태그 필터
-    if (filters.tags && filters.tags.length > 0) {
-      filteredPosts = filteredPosts.filter(post => 
-        filters.tags!.some(tag => post.tags.includes(tag))
-      );
-    }
-    
-    // 검색 필터
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filteredPosts = filteredPosts.filter(post => 
-        post.title.toLowerCase().includes(searchTerm) ||
-        post.description?.toLowerCase().includes(searchTerm) ||
-        post.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-      );
-    }
-    
-    // 페이지네이션
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
-    
-    return {
-      data: {
-        data: paginatedPosts,
-        total: filteredPosts.length,
-        page,
-        limit,
-        hasMore: endIndex < filteredPosts.length,
-      },
-      success: true,
-      message: '피드 데이터를 성공적으로 조회했습니다.',
+
+    const mapped: PaginatedResponse<ImagePost> = {
+      data,
+      total: payload.total,
+      page: payload.page,
+      limit: payload.limit,
+      hasMore: payload.hasMore,
     };
+    return { data: mapped, success: true, message: '피드 데이터를 성공적으로 조회했습니다.' };
   }
 
   // 좋아요 토글
@@ -233,12 +211,16 @@ export class MockApi {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           prompt: request.prompt,
           styleId: request.styleId,
           userId: request.userId,
           sessionId: request.sessionId,
+          imageSize: request.imageSize,
+          // Ensure server receives an aspect ratio even if only imageSize is provided
+          aspectRatio: request.imageSize?.ratio || '1:1',
         }),
       });
 
@@ -248,6 +230,18 @@ export class MockApi {
       }
 
       const result = await response.json();
+      try {
+        if (result?.success && Array.isArray(result.images)) {
+          LocalGallery.addGenerated(result.images.map((img: any) => ({
+            id: img.id,
+            url: img.url,
+            thumbnailUrl: img.thumbnailUrl || img.url,
+            prompt: img.prompt || request.prompt,
+            styleId: img.styleId || request.styleId,
+            createdAt: new Date(),
+          })));
+        }
+      } catch {}
       return result;
     } catch (error) {
       console.error('Image generation failed:', error);
@@ -274,159 +268,120 @@ export class MockApi {
 
   // 이미지 저장 (갤러리)
   static async saveToGallery(request: SaveRequest): Promise<SaveResponse> {
-    return await simulateImageSave(request.imageId, request.metadata, request.isPublic);
+    const metaRes = await fetch(`/api/gallery/${request.imageId}/metadata`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request.metadata),
+    });
+    if (!metaRes.ok) {
+      return { success: false, message: '메타데이터 저장 실패' };
+    }
+    const visRes = await fetch(`/api/gallery/${request.imageId}/visibility`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPublic: !!request.isPublic }),
+    });
+    if (!visRes.ok) {
+      return { success: false, message: '공개 상태 저장 실패' };
+    }
+    try {
+      LocalGallery.updateMetadata(request.imageId, request.metadata);
+      LocalGallery.setVisibility(request.imageId, !!request.isPublic);
+    } catch {}
+    return { success: true, galleryId: request.imageId, message: '갤러리에 저장되었습니다.' };
   }
 
   // 이미지 공유 (커뮤니티)
   static async shareToCommunity(request: SaveRequest): Promise<SaveResponse> {
-    return await simulateImageSave(request.imageId, request.metadata, true);
+    const metaRes = await fetch(`/api/gallery/${request.imageId}/metadata`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request.metadata),
+    });
+    if (!metaRes.ok) {
+      return { success: false, message: '메타데이터 저장 실패' };
+    }
+    const visRes = await fetch(`/api/gallery/${request.imageId}/visibility`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPublic: true }),
+    });
+    if (!visRes.ok) {
+      return { success: false, message: '공개 전환 실패' };
+    }
+    try {
+      LocalGallery.updateMetadata(request.imageId, request.metadata);
+      LocalGallery.setVisibility(request.imageId, true);
+    } catch {}
+    return { success: true, feedId: request.imageId, message: '커뮤니티에 공유되었습니다.' };
   }
 
   // 갤러리 조회
   static async getGallery(
     tab: 'private' | 'public' = 'private',
-    filters: GalleryFilters = { tags: [], category: '', sortBy: 'latest', searchQuery: '' },
+    _filters: GalleryFilters = { tags: [], category: '', sortBy: 'latest', searchQuery: '' },
     page: number = 1,
     limit: number = 12
   ): Promise<ApiResponse<PaginatedResponse<GalleryImage>>> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 갤러리 데이터가 비어있으면 초기 데이터 생성 (한 번만)
-    if (galleryImages.length === 0) {
-      const currentUser = mockUsers[0];
-      galleryImages = mockImagePosts
-        .filter(post => post.author.id === currentUser.id)
-        .map(post => ({
-          id: post.id,
-          title: post.title,
-          description: post.description || '',
-          tags: post.tags,
-          category: post.category,
-          thumbnailUrl: post.thumbnailUrl,
-          imageUrl: post.imageUrl,
-          isPublic: post.isPublic,
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          stats: {
-            views: Math.floor(Math.random() * 1000) + 50,
-            likes: post.likes,
-            comments: post.comments,
-          }
-        }));
-    }
-    
-    let filteredGalleryImages = [...galleryImages];
-
-    // 탭별 필터링
-    if (tab === 'public') {
-      filteredGalleryImages = filteredGalleryImages.filter(img => img.isPublic);
+    const params = new URLSearchParams({ tab, page: String(page), limit: String(limit) });
+    const res = await fetch(`/api/gallery?${params.toString()}`, { cache: 'no-store' });
+    let payload: PaginatedResponse<any> = { data: [], total: 0, page, limit, hasMore: false } as any;
+    if (res.ok) {
+      const json = await res.json();
+      payload = json.data as PaginatedResponse<any>;
     }
 
-    // 검색 필터
-    if (filters.searchQuery) {
-      const searchTerm = filters.searchQuery.toLowerCase();
-      filteredGalleryImages = filteredGalleryImages.filter(img => 
-        img.title.toLowerCase().includes(searchTerm) ||
-        img.description.toLowerCase().includes(searchTerm) ||
-        img.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-      );
+    let data = (payload.data || []).map((g: any) => ({
+      ...g,
+      createdAt: new Date(g.createdAt),
+      updatedAt: new Date(g.updatedAt),
+    }));
+
+    if (!res.ok || data.length === 0) {
+      const local = LocalGallery.list(tab, page, limit);
+      data = local.data;
+      payload = { data, total: local.total, page, limit, hasMore: local.hasMore } as any;
     }
 
-    // 카테고리 필터
-    if (filters.category) {
-      filteredGalleryImages = filteredGalleryImages.filter(img => img.category === filters.category);
-    }
-
-    // 태그 필터
-    if (filters.tags.length > 0) {
-      filteredGalleryImages = filteredGalleryImages.filter(img => 
-        filters.tags.some(tag => img.tags.includes(tag))
-      );
-    }
-
-    // 정렬
-    switch (filters.sortBy) {
-      case 'oldest':
-        filteredGalleryImages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-        break;
-      case 'likes':
-        filteredGalleryImages.sort((a, b) => b.stats.likes - a.stats.likes);
-        break;
-      case 'title':
-        filteredGalleryImages.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      default: // latest
-        filteredGalleryImages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }
-
-    // 페이지네이션
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedImages = filteredGalleryImages.slice(startIndex, endIndex);
-
-    return {
-      data: {
-        data: paginatedImages,
-        total: filteredGalleryImages.length,
-        page,
-        limit,
-        hasMore: endIndex < filteredGalleryImages.length,
-      },
-      success: true,
-      message: '갤러리 데이터를 성공적으로 조회했습니다.',
+    const mapped: PaginatedResponse<GalleryImage> = {
+      data,
+      total: payload.total,
+      page: payload.page,
+      limit: payload.limit,
+      hasMore: payload.hasMore,
     };
+    return { data: mapped, success: true, message: '갤러리 데이터를 성공적으로 조회했습니다.' };
   }
 
   // 갤러리 이미지 편집
   static async updateGalleryImage(imageId: string, updateData: GalleryUpdateRequest): Promise<ApiResponse<{ id: string; updatedAt: Date }>> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    return {
-      data: {
-        id: imageId,
-        updatedAt: new Date(),
-      },
-      success: true,
-      message: '이미지 정보가 수정되었습니다.',
-    };
+    // TODO: 개별 필드 업데이트 라우트가 필요하면 구현
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return { data: { id: imageId, updatedAt: new Date() }, success: true };
   }
 
   // 갤러리 이미지 공개 상태 전환
   static async toggleGalleryVisibility(imageId: string, isPublic: boolean): Promise<ApiResponse<{ id: string; isPublic: boolean; feedId?: string }>> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    return {
-      data: {
-        id: imageId,
-        isPublic,
-        feedId: isPublic ? `feed_${Date.now()}` : undefined,
-      },
-      success: true,
-      message: isPublic ? '이미지가 공개되었습니다.' : '이미지가 비공개로 설정되었습니다.',
-    };
+    const res = await fetch(`/api/gallery/${imageId}/visibility`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPublic }),
+    });
+    if (!res.ok) {
+      return { data: { id: imageId, isPublic }, success: false, message: '상태 변경 실패' };
+    }
+    const json = await res.json();
+    return { data: json.data, success: true, message: isPublic ? '이미지가 공개되었습니다.' : '이미지가 비공개로 설정되었습니다.' };
   }
 
   // 갤러리 이미지 삭제
   static async deleteGalleryImage(imageId: string): Promise<ApiResponse<{ id: string }>> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // 실제로 갤러리 데이터에서 이미지 삭제
-    const initialLength = galleryImages.length;
-    galleryImages = galleryImages.filter(img => img.id !== imageId);
-    
-    if (galleryImages.length < initialLength) {
-      return {
-        data: { id: imageId },
-        success: true,
-        message: '이미지가 삭제되었습니다.',
-      };
-    } else {
-      return {
-        data: { id: imageId },
-        success: false,
-        message: '이미지를 찾을 수 없습니다.',
-      };
+    const res = await fetch(`/api/gallery/${imageId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      return { data: { id: imageId }, success: false, message: '삭제 실패' };
     }
+    const json = await res.json();
+    return { data: json.data, success: true, message: '이미지가 삭제되었습니다.' };
   }
 
   // 갤러리 태그 조회

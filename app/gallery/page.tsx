@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { GalleryImage, GalleryFilters, GalleryState } from '@/lib/types';
 import { MockApi } from '@/lib/api/mockApi';
-import { Header } from '@/components/ui/Header';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { GalleryTabs } from '@/components/gallery/GalleryTabs';
 import { GalleryFilters as GalleryFiltersComponent } from '@/components/gallery/GalleryFilters';
 import { GalleryGrid } from '@/components/gallery/GalleryGrid';
@@ -13,6 +15,9 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Toast } from '@/components/ui/Toast';
 
 export default function GalleryPage() {
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+
   const [state, setState] = useState<GalleryState>({
     activeTab: 'private',
     images: [],
@@ -39,25 +44,72 @@ export default function GalleryPage() {
     image: null,
   });
 
-  // 갤러리 데이터 로드
-  const loadGalleryData = async (page: number = 1, append: boolean = false) => {
+  // 갤러리 데이터 로드 (서버 API 직접 호출)
+  const loadGalleryData = useCallback(async (page: number = 1, append: boolean = false) => {
     setState(prev => ({ ...prev, pagination: { ...prev.pagination, isLoading: true } }));
-    
-    try {
-      const response = await MockApi.getGallery(
-        state.activeTab,
-        state.filters,
-        page,
-        12
-      );
 
-      if (response.success) {
+    try {
+      const params = new URLSearchParams({
+        tab: state.activeTab,
+        page: String(page),
+        limit: '12',
+      });
+
+      // schema.ts 기준 필드 전달
+      if (state.filters.category && state.filters.category.trim()) {
+        params.set('category', state.filters.category.trim()); // categoryEnum 값 기대
+      }
+      if (Array.isArray(state.filters.tags) && state.filters.tags.length > 0) {
+        params.set('tags', state.filters.tags.join(',')); // 문자열 배열 -> CSV
+      }
+      if (state.filters.sortBy && state.filters.sortBy.trim()) {
+        params.set('sortBy', state.filters.sortBy.trim());
+      }
+      if (state.filters.searchQuery && state.filters.searchQuery.trim()) {
+        params.set('search', state.filters.searchQuery.trim());
+      }
+
+      const res = await fetch(`/api/gallery?${params.toString()}`, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`Failed to load gallery: ${res.status}`);
+      }
+      type ApiGalleryItem = {
+        id: string;
+        title: string;
+        description: string;
+        tags: string[];
+        category: string; // schema.ts의 categoryEnum 값
+        thumbnailUrl: string;
+        imageUrl: string;
+        isPublic: boolean;
+        createdAt: string;
+        updatedAt: string;
+      };
+      type ApiGalleryPayload = {
+        data: {
+          data: ApiGalleryItem[];
+          total: number;
+          page: number;
+          limit: number;
+          hasMore: boolean;
+        };
+        success: boolean;
+      };
+
+      const json: ApiGalleryPayload = await res.json();
+      if (json && json.success && json.data) {
+        const mapped = (json.data.data || []).map((g) => ({
+          ...g,
+          createdAt: new Date(g.createdAt),
+          updatedAt: new Date(g.updatedAt),
+        })) as unknown as GalleryImage[];
+
         setState(prev => ({
           ...prev,
-          images: append ? [...prev.images, ...response.data.data] : response.data.data,
+          images: append ? [...prev.images, ...mapped] : mapped,
           pagination: {
             currentPage: page,
-            hasNext: response.data.hasMore,
+            hasNext: json.data.hasMore,
             isLoading: false,
           },
           error: null,
@@ -76,12 +128,30 @@ export default function GalleryPage() {
         pagination: { ...prev.pagination, isLoading: false },
       }));
     }
-  };
+  }, [state.activeTab, state.filters]);
+
+  // 로그인 확인
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, isSignedIn, router]);
 
   // 초기 데이터 로드
   useEffect(() => {
-    loadGalleryData(1, false);
-  }, [state.activeTab, state.filters]);
+    if (isLoaded && isSignedIn) {
+      loadGalleryData(1, false);
+    }
+  }, [isLoaded, isSignedIn, loadGalleryData]);
+
+  // 로딩 중이거나 로그인하지 않은 경우
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   // 탭 변경
   const handleTabChange = (tab: 'private' | 'public') => {
@@ -175,12 +245,21 @@ export default function GalleryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* 헤더 */}
-      <Header title="AIPixels" subtitle="갤러리" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+      {/* 사이드바 */}
+      <Sidebar />
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col">
+        {/* 상단 헤더 */}
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">갤러리</h1>
+          </div>
+        </div>
+
+        {/* 메인 콘텐츠 */}
+        <main className="flex-1 p-6">
         {/* 탭 메뉴 */}
         <GalleryTabs 
           activeTab={state.activeTab}
@@ -218,7 +297,8 @@ export default function GalleryPage() {
             <LoadingSpinner size="lg" />
           </div>
         )}
-      </main>
+        </main>
+      </div>
 
       {/* 상세보기 모달 */}
       {state.selectedImage && (

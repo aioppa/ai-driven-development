@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { ImageGenerationState, GeneratedImage, ImageMetadata } from '@/lib/types';
 import { MockApi } from '@/lib/api/mockApi';
-import { Header } from '@/components/ui/Header';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { StyleDropdownButton } from '@/components/generate/StyleDropdownButton';
+import { ImageSizeSelector } from '@/components/generate/ImageSizeSelector';
 import { CreativityLevelSelector } from '@/components/generate/CreativityLevelSelector';
 import { ImageVariationGenerator } from '@/components/generate/ImageVariationGenerator';
 import { PromptInput } from '@/components/generate/PromptInput';
@@ -14,10 +16,12 @@ import { MetadataForm } from '@/components/generate/MetadataForm';
 import { ActionButtons } from '@/components/generate/ActionButtons';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Toast } from '@/components/ui/Toast';
+import { useCredit, hasEnoughCredits } from '@/lib/services/creditsService';
 
 export default function GeneratePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, isSignedIn } = useUser();
   
   // URL에서 프롬프트와 스타일 파라미터 가져오기
   const initialPrompt = searchParams.get('prompt') || '';
@@ -45,6 +49,16 @@ export default function GeneratePage() {
 
   const [creativityLevel, setCreativityLevel] = useState(3); // 기본값: 창의적
   const [translatedPrompt, setTranslatedPrompt] = useState<string>('');
+  
+  // 이미지 사이즈 상태
+  const [selectedImageSize, setSelectedImageSize] = useState({
+    id: '1:1',
+    name: '정사각형',
+    ratio: '1:1',
+    width: 1024,
+    height: 1024,
+    description: 'SNS용 정사각형'
+  });
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -92,6 +106,11 @@ export default function GeneratePage() {
     setCreativityLevel(level);
   };
 
+  // 이미지 사이즈 변경 핸들러
+  const handleImageSizeChange = (size: any) => {
+    setSelectedImageSize(size);
+  };
+
   // 이미지 변형 생성 핸들러
   const handleGenerateVariation = async (imageId: string, variationType: string, level: number, additionalPrompt?: string) => {
     if (!state.selectedImage) {
@@ -137,6 +156,7 @@ export default function GeneratePage() {
         prompt: promptToUse,
         originalPrompt: state.prompt,
         styleId: state.selectedStyle?.id || '1',
+        imageSize: selectedImageSize,
       });
 
       if (response.success) {
@@ -170,6 +190,24 @@ export default function GeneratePage() {
 
   // 이미지 생성 핸들러
   const handleGenerate = async () => {
+    if (!isSignedIn) {
+      setToast({ message: '로그인이 필요합니다.', type: 'error' });
+      router.push('/sign-in');
+      return;
+    }
+
+    if (!user?.id) {
+      setToast({ message: '사용자 정보를 불러올 수 없습니다.', type: 'error' });
+      return;
+    }
+
+    // 크레딧 확인
+    if (!hasEnoughCredits(user.id, 1)) {
+      setToast({ message: '크레딧이 부족합니다. 내일 다시 시도해주세요.', type: 'error' });
+      setState(prev => ({ ...prev, promptError: '크레딧이 부족합니다.' }));
+      return;
+    }
+
     if (!state.prompt.trim()) {
       setState(prev => ({ ...prev, promptError: '프롬프트를 입력해주세요.' }));
       return;
@@ -184,13 +222,20 @@ export default function GeneratePage() {
 
     try {
       const promptToUse = translatedPrompt || state.prompt;
+      
       const response = await MockApi.generateImages({
         prompt: promptToUse,
         originalPrompt: state.prompt,
         styleId: state.selectedStyle.id,
+        imageSize: selectedImageSize,
       });
 
       if (response.success) {
+        // 크레딧 사용
+        if (useCredit(user.id, 1)) {
+          // 크레딧 업데이트 이벤트 발생
+          window.dispatchEvent(new Event('credits-updated'));
+        }
         setState(prev => ({
           ...prev,
           generatedImages: response.images,
@@ -279,50 +324,21 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* 미래지향적 배경 패턴 */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-0 left-0 w-full h-full" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}></div>
-      </div>
-      
-      {/* 그라데이션 오버레이 */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-cyan-600/10"></div>
-      
-      {/* 애니메이션 원형 요소들 */}
-      <div className="absolute top-20 left-20 w-32 h-32 bg-blue-500/20 rounded-full blur-xl animate-pulse"></div>
-      <div className="absolute top-40 right-32 w-24 h-24 bg-purple-500/20 rounded-full blur-lg animate-pulse delay-1000"></div>
-      <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-cyan-500/20 rounded-full blur-2xl animate-pulse delay-2000"></div>
-      <div className="absolute bottom-20 right-20 w-28 h-28 bg-pink-500/20 rounded-full blur-xl animate-pulse delay-500"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+      {/* 사이드바 */}
+      <Sidebar />
 
-      {/* 헤더 */}
-      <Header 
-        title="AIPixels" 
-        subtitle="이미지 생성"
-        className="relative z-10"
-        rightContent={
-          <div className="flex items-center space-x-4">
-            {/* 크레딧 정보 */}
-            <div className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors cursor-pointer">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-              <span className="text-sm font-medium">{state.remainingCredits}개</span>
-            </div>
-            
-            {/* 프로필 아이콘 */}
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
-            </div>
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col">
+        {/* 상단 헤더 */}
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">이미지 생성</h1>
           </div>
-        }
-      />
+        </div>
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+        {/* 메인 콘텐츠 */}
+        <main className="flex-1 p-6">
         <div className="space-y-4">
           {/* 프롬프트 입력 영역 */}
           <section className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
@@ -336,21 +352,34 @@ export default function GeneratePage() {
             />
           </section>
 
-          {/* 스타일 선택 영역 */}
-          <section className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 relative z-[9998]">
-            <StyleDropdownButton
-              styles={state.availableStyles}
-              selectedStyle={state.selectedStyle}
-              onStyleSelect={handleStyleSelect}
-            />
-          </section>
-
-          {/* 상상력 난이도 선택 영역 */}
+          {/* 선택 옵션들 - 한 줄로 배치 */}
           <section className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-            <CreativityLevelSelector
-              selectedLevel={creativityLevel}
-              onLevelChange={handleCreativityLevelChange}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 스타일 선택 */}
+              <div className="relative z-[9998]">
+                <StyleDropdownButton
+                  styles={state.availableStyles}
+                  selectedStyle={state.selectedStyle}
+                  onStyleSelect={handleStyleSelect}
+                />
+              </div>
+
+              {/* 이미지 크기 선택 */}
+              <div>
+                <ImageSizeSelector
+                  selectedSize={selectedImageSize}
+                  onSizeChange={handleImageSizeChange}
+                />
+              </div>
+
+              {/* 상상력 난이도 선택 */}
+              <div>
+                <CreativityLevelSelector
+                  selectedLevel={creativityLevel}
+                  onLevelChange={handleCreativityLevelChange}
+                />
+              </div>
+            </div>
           </section>
 
           {/* 생성 결과 영역 */}
@@ -422,16 +451,8 @@ export default function GeneratePage() {
             </section>
           )}
         </div>
-      </main>
-
-      {/* 푸터 */}
-      <footer className="bg-white/10 backdrop-blur-md border-t border-white/20 mt-8 relative z-1">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center text-white/70">
-            <p>&copy; 2025 AIPixels. 의 모든 권리와 소유는 (주)한유 기업에게 있습니다.</p>
-          </div>
-        </div>
-      </footer>
+        </main>
+      </div>
 
       {/* 토스트 알림 */}
       {toast && (

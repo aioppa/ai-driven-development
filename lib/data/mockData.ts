@@ -178,6 +178,13 @@ export const mockStyles: StyleOption[] = [
     description: '풍부하고 복잡한 맥시멀 스타일',
     thumbnail: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=200&h=200&fit=crop',
   },
+  {
+    id: '26',
+    name: '지브리 스타일',
+    description: '스튜디오 지브리 애니메이션 스타일',
+    thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop',
+    isPopular: true,
+  },
 ];
 
 // 목업 카테고리 데이터

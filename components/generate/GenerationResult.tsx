@@ -60,8 +60,8 @@ export const GenerationResult: React.FC<GenerationResultProps> = ({
         )}
       </div>
 
-      {/* 이미지 그리드 */}
-      <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+      {/* 이미지 그리드 - 50% 확대 */}
+      <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
         {images.map((image, index) => (
           <div
             key={image.id}
@@ -75,9 +75,9 @@ export const GenerationResult: React.FC<GenerationResultProps> = ({
             onMouseEnter={() => setHoveredImage(image.id)}
             onMouseLeave={() => setHoveredImage(null)}
           >
-            {/* 이미지 컨테이너 */}
+            {/* 이미지 컨테이너 - 50% 확대 */}
             <div className={cn(
-              'relative aspect-square rounded-xl overflow-hidden transition-all duration-300',
+              'relative aspect-[4/3] rounded-xl overflow-hidden transition-all duration-300',
               selectedImage?.id === image.id
                 ? 'ring-4 ring-[#3A6BFF] shadow-lg shadow-[#3A6BFF]/30'
                 : 'ring-2 ring-white/20 hover:ring-white/40'
