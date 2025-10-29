@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm';
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -14,7 +14,8 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    const imageId = Number(params.id);
+    const { id } = await context.params;
+    const imageId = Number(id);
     if (!Number.isFinite(imageId)) {
       return NextResponse.json({ success: false, message: 'Invalid image id' }, { status: 400 });
     }
