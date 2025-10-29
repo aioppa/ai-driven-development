@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+// Polyfill RouteContext type for Next.js v15 app router
+type RouteContext<_Path extends string> = { params: Promise<{ id: string }> };
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { images } from '@/db/schema';
@@ -6,7 +9,7 @@ import { and, eq } from 'drizzle-orm';
 
 export async function DELETE(
   _request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  ctx: RouteContext<'/api/gallery/[id]'>
 ) {
   try {
     const { userId } = await auth();
@@ -14,7 +17,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await context.params;
+    const { id } = await ctx.params;
     const imageId = Number(id);
     if (!Number.isFinite(imageId)) {
       return NextResponse.json({ success: false, message: 'Invalid image id' }, { status: 400 });
