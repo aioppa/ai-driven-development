@@ -35,6 +35,12 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+### Notes for this project
+
+- ESLint during build is relaxed to prevent CI failures. Tighten the rules gradually as types are added.
+- Dynamic API routes follow Next.js v15: access `id` via `const { id } = await context.params`.
+- When database/storage is not configured, feed and gallery gracefully fallback to a local, browser-only store so users can still generate and share images during development.
+
 ## Environment Variables
 
 Create a `.env.local` file in the project root:
