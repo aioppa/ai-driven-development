@@ -161,7 +161,7 @@ export function GalleryCard({ image, onSelect, onVisibilityToggle, onDelete, onS
           prompt: image.title,
           originalPrompt: image.description,
           styleId: 'gallery',
-          createdAt: image.createdAt.toISOString(),
+          createdAt: image.createdAt,
           predictionId: undefined
         } : null}
         isOpen={showZoomModal}

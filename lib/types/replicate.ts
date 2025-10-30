@@ -56,6 +56,7 @@ export interface AIPixelsGenerationRequest {
   sessionId?: string;
   aspectRatio?: string;
   numOutputs?: number;
+  originalPrompt?: string;
 }
 
 export interface AIPixelsGenerationResponse {
@@ -72,6 +73,7 @@ export interface GeneratedImage {
   url: string;
   thumbnailUrl: string;
   prompt: string;
+  originalPrompt?: string;
   styleId: string;
   createdAt: Date;
   predictionId?: string;

@@ -83,7 +83,7 @@ export interface GeneratedImage {
   prompt: string;
   originalPrompt?: string;
   styleId: string;
-  createdAt: string;
+  createdAt: Date;
   predictionId?: string;
 }
 

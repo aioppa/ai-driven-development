@@ -268,7 +268,7 @@ export class ReplicateAPI {
       prompt: prompt,
       originalPrompt: originalPrompt,
       styleId: styleId,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
       predictionId: predictionId
     }));
   }

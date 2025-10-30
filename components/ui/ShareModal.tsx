@@ -18,9 +18,10 @@ export function ShareModal({ isOpen, onClose, title, description, imageUrl, url 
 
   const shareUrl = url || window.location.href;
   const shareText = description ? `${title} - ${description}` : title;
+  const supportsWebShare = typeof window !== 'undefined' && typeof (navigator as any).share === 'function';
 
   const handleWebShare = async () => {
-    if (navigator.share) {
+    if (supportsWebShare) {
       try {
         await navigator.share({
           title: title,
@@ -109,12 +110,12 @@ export function ShareModal({ isOpen, onClose, title, description, imageUrl, url 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
               </svg>
               <span className="font-medium">
-                {navigator.share ? '공유하기' : '링크 복사'}
+                {supportsWebShare ? '공유하기' : '링크 복사'}
               </span>
             </button>
 
             {/* 링크 복사 (Web Share API 지원 시) */}
-            {navigator.share && (
+            {supportsWebShare && (
               <button
                 onClick={handleCopyLink}
                 className="w-full flex items-center justify-center space-x-3 p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white/80 hover:text-white transition-all duration-200"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { ImageGenerationState, GeneratedImage, ImageMetadata } from '@/lib/types';
@@ -18,7 +18,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Toast } from '@/components/ui/Toast';
 import { useCredit, hasEnoughCredits } from '@/lib/services/creditsService';
 
-export default function GeneratePage() {
+function GeneratePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isSignedIn } = useUser();
@@ -87,7 +87,7 @@ export default function GeneratePage() {
     const selectedStyle = state.availableStyles.find(style => style.id === styleId);
     setState(prev => ({
       ...prev,
-      selectedStyle,
+      selectedStyle: selectedStyle ?? null,
       promptError: null,
     }));
   };
@@ -463,5 +463,13 @@ export default function GeneratePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function GeneratePage() {
+  return (
+    <Suspense fallback={<div />}> 
+      <GeneratePageContent />
+    </Suspense>
   );
 }
