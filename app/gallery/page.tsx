@@ -44,72 +44,22 @@ export default function GalleryPage() {
     image: null,
   });
 
-  // 갤러리 데이터 로드 (서버 API 직접 호출)
+  // 갤러리 데이터 로드 (클라이언트 API - 서버 응답이 비거나 실패해도 로컬 폴백 지원)
   const loadGalleryData = useCallback(async (page: number = 1, append: boolean = false) => {
     setState(prev => ({ ...prev, pagination: { ...prev.pagination, isLoading: true } }));
 
     try {
-      const params = new URLSearchParams({
-        tab: state.activeTab,
-        page: String(page),
-        limit: '12',
-      });
-
-      // schema.ts 기준 필드 전달
-      if (state.filters.category && state.filters.category.trim()) {
-        params.set('category', state.filters.category.trim()); // categoryEnum 값 기대
-      }
-      if (Array.isArray(state.filters.tags) && state.filters.tags.length > 0) {
-        params.set('tags', state.filters.tags.join(',')); // 문자열 배열 -> CSV
-      }
-      if (state.filters.sortBy && state.filters.sortBy.trim()) {
-        params.set('sortBy', state.filters.sortBy.trim());
-      }
-      if (state.filters.searchQuery && state.filters.searchQuery.trim()) {
-        params.set('search', state.filters.searchQuery.trim());
-      }
-
-      const res = await fetch(`/api/gallery?${params.toString()}`, { cache: 'no-store' });
-      if (!res.ok) {
-        throw new Error(`Failed to load gallery: ${res.status}`);
-      }
-      type ApiGalleryItem = {
-        id: string;
-        title: string;
-        description: string;
-        tags: string[];
-        category: string; // schema.ts의 categoryEnum 값
-        thumbnailUrl: string;
-        imageUrl: string;
-        isPublic: boolean;
-        createdAt: string;
-        updatedAt: string;
-      };
-      type ApiGalleryPayload = {
-        data: {
-          data: ApiGalleryItem[];
-          total: number;
-          page: number;
-          limit: number;
-          hasMore: boolean;
-        };
-        success: boolean;
-      };
-
-      const json: ApiGalleryPayload = await res.json();
-      if (json && json.success && json.data) {
-        const mapped = (json.data.data || []).map((g) => ({
-          ...g,
-          createdAt: new Date(g.createdAt),
-          updatedAt: new Date(g.updatedAt),
-        })) as unknown as GalleryImage[];
+      const result = await MockApi.getGallery(state.activeTab, state.filters, page, 12);
+      if (result.success) {
+        const payload = result.data;
+        const mapped = (payload.data || []) as GalleryImage[];
 
         setState(prev => ({
           ...prev,
           images: append ? [...prev.images, ...mapped] : mapped,
           pagination: {
             currentPage: page,
-            hasNext: json.data.hasMore,
+            hasNext: payload.hasMore,
             isLoading: false,
           },
           error: null,
@@ -246,20 +196,25 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
-      {/* 사이드바 */}
-      <Sidebar />
+      {/* 사이드바: 모바일 숨김, 데스크톱 표시 */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
         {/* 상단 헤더 */}
-        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">갤러리</h1>
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10">
+          <div className="mx-auto w-full md:max-w-[960px] px-2.5 md:px-5 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl md:text-2xl font-bold text-white">갤러리</h1>
+            </div>
           </div>
         </div>
 
         {/* 메인 콘텐츠 */}
-        <main className="flex-1 p-6">
+        <main className="flex-1">
+        <div className="mx-auto w-full md:max-w-[960px] px-2.5 md:px-5 py-4 md:py-6">
         {/* 탭 메뉴 */}
         <GalleryTabs 
           activeTab={state.activeTab}
@@ -297,6 +252,7 @@ export default function GalleryPage() {
             <LoadingSpinner size="lg" />
           </div>
         )}
+        </div>
         </main>
       </div>
 

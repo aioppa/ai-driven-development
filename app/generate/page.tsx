@@ -325,21 +325,25 @@ function GeneratePageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
-      {/* 사이드바 */}
-      <Sidebar />
+      {/* 사이드바: 모바일 숨김, 데스크톱 표시 */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
         {/* 상단 헤더 */}
-        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">이미지 생성</h1>
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10">
+          <div className="mx-auto w-full md:max-w-[960px] px-2.5 md:px-5 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl md:text-2xl font-bold text-white">이미지 생성</h1>
+            </div>
           </div>
         </div>
 
         {/* 메인 콘텐츠 */}
-        <main className="flex-1 p-6">
-        <div className="space-y-4">
+        <main className="flex-1">
+        <div className="mx-auto w-full md:max-w-[960px] px-2.5 md:px-5 py-4 md:py-6 space-y-4">
           {/* 프롬프트 입력 영역 */}
           <section className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
             <PromptInput

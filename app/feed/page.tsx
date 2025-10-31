@@ -133,20 +133,25 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
-      {/* 사이드바 */}
-      <Sidebar />
+      {/* 사이드바: 모바일 숨김, 데스크톱 표시 */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
         {/* 상단 헤더 */}
-        <div className="bg-black/50 backdrop-blur-md border-b border-white/10 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">커뮤니티</h1>
+        <div className="bg-black/50 backdrop-blur-md border-b border-white/10">
+          <div className="mx-auto w-full md:max-w-[960px] px-2.5 md:px-5 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl md:text-2xl font-bold text-white">커뮤니티</h1>
+            </div>
           </div>
         </div>
 
         {/* 메인 콘텐츠 */}
-        <main className="flex-1 p-6">
+        <main className="flex-1">
+        <div className="mx-auto w-full md:max-w-[960px] px-2.5 md:px-5 py-4 md:py-6">
 
         {/* 필터 및 검색 */}
         <FeedFiltersComponent
@@ -177,6 +182,7 @@ export default function FeedPage() {
             <LoadingSpinner size="lg" />
           </div>
         )}
+        </div>
         </main>
       </div>
 
